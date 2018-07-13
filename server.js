@@ -26,7 +26,7 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use((req, res, next) => {
-  console.log('req', req);
+  console.log('req', new Date());
   next();
 });
 
@@ -223,6 +223,7 @@ const dialog = {
 
 // Slack slash command handler
 function slackSlashCommand(req, res, next) {
+  console.log('slackSlashCommand');
   if (req.body.token === slackVerificationToken && req.body.command === '/interactive-example') {
     const type = req.body.text.split(' ')[0];
     if (type === 'button') {
