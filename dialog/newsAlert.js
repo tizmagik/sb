@@ -6,26 +6,37 @@ const dialog = {
   submit_label: "Submit",
   elements: [
     {
+      label: "Slug (or URL)",
+      type: "text",
+      name: "slug",
+      placeholder: "",
+      hint:
+        "Provide the slug for the alert (or URL, if you have it). You can update this later."
+    },
+    {
       label: "Language for the alert",
       type: "textarea",
-      max_length: 140,
+      // max_length: 140,
       name: "language",
       placeholder: "Breaking news...",
-      hint: "Provide the language for this alert."
+      hint: "You can change this later.",
+      optional: true
     },
     {
-      label: "Link",
-      type: "text",
-      name: "link",
-      placeholder: "http://...",
-      hint: "Provide the link for the alert."
-    },
-    {
-      label: "Desk",
+      label: "Desk partner",
       type: "select",
       name: "desk",
+      data_source: "users",
+      placeholder: "Desk partner",
+      hint: "You can change this later.",
+      optional: true
+    },
+    {
+      label: "Audience",
+      type: "select",
+      name: "audience",
       value: "news",
-      hint: "Which desk?",
+      hint: "You can add more later.",
       options: [
         {
           label: "News",
@@ -35,24 +46,17 @@ const dialog = {
           label: "Business",
           value: "business"
         }
-      ]
-    },
-    {
-      label: "Owner",
-      type: "select",
-      name: "owner",
-      data_source: "users",
-      placeholder: "Owner",
-      hint: "Who owns this alert?"
-    },
-    {
-      label: "Approval",
-      type: "select",
-      name: "approval1",
-      data_source: "users",
-      placeholder: "Require approval from",
-      hint: "Who should approve?"
+      ],
+      optional: true
     }
+    // {
+    //   label: "Approval",
+    //   type: "select",
+    //   name: "approval1",
+    //   data_source: "users",
+    //   placeholder: "Require approval from",
+    //   hint: "Who should approve?"
+    // }
     // {
     //   label: "Approval 2",
     //   type: "select",

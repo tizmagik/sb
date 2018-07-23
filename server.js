@@ -167,6 +167,8 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
     } submitted a dialog`
   );
 
+  console.dir(payload);
+
   // Check the values in `payload.submission` and report any possible errors
   const errors = validateKudosSubmission(payload.submission);
   if (errors) {
