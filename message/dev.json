@@ -1,5 +1,6 @@
 {
   "text": "🚨 Breaking news alert for `slug`",
+  "response_type": "in_channel",
   "attachments": [
     {
       "mrkdwn_in": ["fields"],
@@ -44,11 +45,11 @@
       "fallback": "Make an edit, request or add your approval...",
       "color": "#ffffff",
       "attachment_type": "default",
-      "callback_id": "game_selection",
+      "callback_id": "action_selection",
       "actions": [
         {
-          "name": "games_list",
-          "text": "Pick a game...",
+          "name": "action_list",
+          "text": "Choose an action...",
           "type": "select",
           "options": [
             {

@@ -9,6 +9,7 @@ const dialog = {
       label: "Slug (or URL)",
       type: "text",
       name: "slug",
+      value: "faux-slug",
       placeholder: "",
       hint:
         "Provide the slug for the alert (or URL, if you have it). You can update this later."

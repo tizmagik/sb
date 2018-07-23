@@ -1,11 +1,13 @@
 import http from "http";
 import express from "express";
 import bodyParser from "body-parser";
+import { print } from "q-i";
 import { createMessageAdapter } from "@slack/interactive-messages";
 import { WebClient } from "@slack/client";
 import { users, neighborhoods } from "./models";
 import axios from "axios";
 import newsAlert from "./dialog/newsAlert";
+import message from "./message/dev.json";
 
 console.log("Server booting up");
 
@@ -43,7 +45,7 @@ app.use("/slack/actions", slackInteractions.expressMiddleware());
 app.post("/slack/commands", slackSlashCommand);
 
 app.post("/slack/events", (req, res, next) => {
-  console.dir(req.body);
+  print(req.body);
   if (req.body.challenge) {
     return res.end(req.body.challenge);
   }
@@ -54,6 +56,42 @@ app.post("/slack/events", (req, res, next) => {
 const port = process.env.PORT || 0;
 http.createServer(app).listen(port, () => {
   console.log(`server listening on port ${port}`);
+});
+
+slackInteractions.action("action_selection", (payload, respond) => {
+  console.log(
+    `The user ${payload.user.name} in team ${
+      payload.team.domain
+    } chose an action`
+  );
+
+  // print(payload, { depth: 15 });
+  print(payload);
+  console.log("\n\n---\n\n");
+
+  web.conversations
+    .replies({
+      channel: payload.channel.id,
+      ts: payload.message_ts
+    })
+    .then(data => {
+      console.log("\n\n🍉 read\n");
+      // print(data, { depth: 15 });
+      print(data);
+      console.log("\n🍉🍉🍉🍉🍉🍉🍉🍉🍉\n");
+      respond({ ...data.messages[0], text: "🔥 Updated!" });
+    })
+    .catch(e => {
+      console.log("🔥🔥🔥");
+      // print(e);
+      print(e);
+      console.log("🔥🔥🔥");
+      response({
+        text: "Something failed..."
+      });
+    });
+
+  // respond({ ...data.message[0], text: "🔥 Updated!" });
 });
 
 // Slack interactive message handlers
@@ -167,44 +205,54 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
     } submitted a dialog`
   );
 
-  console.dir(payload);
+  const partialMessage = `<@${
+    payload.user.id
+  }> just pitched a new alert for \`${
+    payload.submission.slug
+  }\` with the language:\n> ${payload.submission.language}\n\nDesk: <@${
+    payload.submission.desk
+  }>\nAudience: ${payload.submission.audience}\nFin..`;
 
-  // Check the values in `payload.submission` and report any possible errors
-  const errors = validateKudosSubmission(payload.submission);
-  if (errors) {
-    return errors;
-  } else {
-    setTimeout(() => {
-      const partialMessage = `<@${payload.user.id}> just gave kudos to <@${
-        payload.submission.user
-      }>.`;
+  print(payload);
 
-      // When there are no errors, after this function returns, send an acknowledgement to the user
-      respond({
-        text: partialMessage
-      });
+  respond(message);
 
-      // The app does some work using information in the submission
-      users
-        .findBySlackId(payload.submission.id)
-        .then(user => user.incrementKudosAndSave(payload.submission.comment))
-        .then(user => {
-          // After the asynchronous work is done, call `respond()` with a message object to update
-          // the message.
-          respond({
-            text: `${partialMessage} That makes a total of ${
-              user.kudosCount
-            }! :balloon:`,
-            replace_original: true
-          });
-        })
-        .catch(error => {
-          // Handle errors
-          console.error(error);
-          respond({ text: "An error occurred while incrementing kudos." });
-        });
-    });
-  }
+  // // Check the values in `payload.submission` and report any possible errors
+  // const errors = validateKudosSubmission(payload.submission);
+  // if (errors) {
+  //   return errors;
+  // } else {
+  //   setTimeout(() => {
+  //     const partialMessage = `<@${payload.user.id}> just gave kudos to <@${
+  //       payload.submission.user
+  //     }>.`;
+
+  //     // When there are no errors, after this function returns, send an acknowledgement to the user
+  //     respond({
+  //       text: partialMessage
+  //     });
+
+  //     // The app does some work using information in the submission
+  //     users
+  //       .findBySlackId(payload.submission.id)
+  //       .then(user => user.incrementKudosAndSave(payload.submission.comment))
+  //       .then(user => {
+  //         // After the asynchronous work is done, call `respond()` with a message object to update
+  //         // the message.
+  //         respond({
+  //           text: `${partialMessage} That makes a total of ${
+  //             user.kudosCount
+  //           }! :balloon:`,
+  //           replace_original: true
+  //         });
+  //       })
+  //       .catch(error => {
+  //         // Handle errors
+  //         console.error(error);
+  //         respond({ text: "An error occurred while incrementing kudos." });
+  //       });
+  //   });
+  // }
 });
 
 // Example interactive messages
@@ -289,7 +337,7 @@ function slackSlashCommand(req, res, next) {
     return next();
   }
 
-  console.dir(req.body);
+  print(req.body);
 
   const type = req.body.text.split(" ")[0];
   if (type === "button") {
@@ -304,7 +352,7 @@ function slackSlashCommand(req, res, next) {
         dialog: newsAlert
       })
       .catch(error => {
-        console.dir(error, { depth: 15 });
+        print(error, { depth: 15 });
         return axios.post(req.body.response_url, {
           text: `An error occurred while opening the dialog: ${error.message}`
         });
