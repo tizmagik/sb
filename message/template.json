@@ -1,6 +1,7 @@
 {
   "text": "🚨 ",
   "response_type": "in_channel",
+  "as_user": true,
   "attachments": [
     {
       "mrkdwn_in": ["fields"],

@@ -1,8 +1,8 @@
-export const ID = "sluglanguage_submit";
+export const ID = "sl|"; // sign language
 
-const dialog = ({ slug, language }) => {
+const dialog = ({ slug, language, message_ts }) => {
   return {
-    callback_id: ID,
+    callback_id: `${ID}${message_ts}`,
     title: "Edit slug or language",
     submit_label: "Update",
     elements: [

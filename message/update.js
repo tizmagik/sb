@@ -32,6 +32,8 @@ const formatValue = (field, value) => {
 };
 
 export const updateField = (field, value, msg) => {
+  if (field === "slug") return updateSlug(value, msg);
+
   let i = -1;
 
   msg.attachments[0].fields.forEach((f, idx) => {

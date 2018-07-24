@@ -6,7 +6,7 @@ export const initialMessage = submission => {
 
   const msg = { ...template };
 
-  updateSlug(slug, msg);
+  updateField("slug", slug, msg);
   updateField("language", language, msg);
   updateField("desk", desk, msg);
   updateField("audience", audience, msg);
