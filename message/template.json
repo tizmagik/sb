@@ -1,5 +1,5 @@
 {
-  "text": "🚨 Breaking news alert for `slug`",
+  "text": "🚨 ",
   "response_type": "in_channel",
   "attachments": [
     {
@@ -7,42 +7,41 @@
       "fields": [
         {
           "title": "Language",
-          "value":
-            "This is a breaking news alert, with an interesting teaser and a call to action to find out more.",
+          "value": "_(not set)_",
           "short": false
         },
         {
           "title": "Desk partner",
-          "value": "<http://user|@somedesk>",
+          "value": "_(not set)_",
           "short": true
         },
         {
           "title": "Audience",
-          "value": "General",
+          "value": "_(not set)_",
           "short": true
         },
         {
           "title": "Owner",
-          "value": "<http://user|@someowner>",
+          "value": "_(not set)_",
           "short": true
         },
         {
           "title": "Sender",
-          "value": "<http://user|@somesender>",
+          "value": "_(not set)_",
           "short": true
         },
         {
           "title": "Readers",
           "value":
-            "✅ Approved by: <http://user|@eagerapprover>\n\n🔲 Waiting for approval from: <http://user|@someone1> and <http://user|@someone2>",
+            "_At least 1 approval is required. Request an approval from someone via the action menu below._",
           "short": false
         }
       ]
     },
     {
       "mrkdwn_in": ["text"],
-      "text": "_Make an edit, request or add your approval..._",
-      "fallback": "Make an edit, request or add your approval...",
+      "text": "_Make an edit, request or add an approval..._",
+      "fallback": "Make an edit, request or add an approval...",
       "color": "#ffffff",
       "attachment_type": "default",
       "callback_id": "action_selection",
@@ -53,11 +52,11 @@
           "type": "select",
           "options": [
             {
-              "text": "🚨 Edit the slug or language...",
+              "text": "✏️ Edit the slug or language...",
               "value": "edit"
             },
             {
-              "text": "✏️ Edit desk, audience or owner...",
+              "text": "👥 Edit desk, audience or owner...",
               "value": "editmeta"
             },
             {
@@ -65,7 +64,7 @@
               "value": "request"
             },
             {
-              "text": "✅ Add my approval",
+              "text": "✅ Add approval",
               "value": "approve"
             },
             {

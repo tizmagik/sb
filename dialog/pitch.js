@@ -36,7 +36,7 @@ const dialog = {
       label: "Audience",
       type: "select",
       name: "audience",
-      value: "news",
+      // value: "news",
       hint: "You can add more later.",
       options: [
         {

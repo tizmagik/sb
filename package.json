@@ -5,7 +5,7 @@
   "description": "An example of using Slack Interactive Messages for Node",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --exec babel-node index.js",
+    "dev": "nodemon --delay 1 --exec babel-node index.js",
     "start": "node -r dotenv/config server",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
