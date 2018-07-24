@@ -1,15 +1,20 @@
+const ALERT_PREFIX = "🚨 Alert for ";
+
 export const updateSlug = (slugOrUrl, msg) => {
-  let text = "🚨 Alert for ";
+  console.log("🎯🎯🎯🎯🎯 updateSlug");
+  let text = ALERT_PREFIX;
 
   if (slugOrUrl.startsWith("http")) {
     text += slugOrUrl;
   }
 
   text += "`" + slugOrUrl + "`";
-
   msg.text = text;
 
-  return msg;
+  const newSlug = text.split(" Alert for ")[1].replace(/\`/g, "");
+  console.log("slugOrUrl", slugOrUrl, "newSlug", newSlug, "text", text);
+
+  return slugOrUrl !== newSlug && slugOrUrl; // return old value, if the value differs
 };
 
 // Which fields should get the username treatment?
@@ -50,10 +55,13 @@ export const updateField = (field, value, msg) => {
 
   const foundField = msg.attachments[0].fields[i];
 
+  const old = foundField.value;
+  const newValue = formatValue(field, value);
+
   msg.attachments[0].fields[i] = {
     ...foundField,
-    value: formatValue(field, value)
+    value: newValue
   };
 
-  return msg;
+  return old !== newValue && old;
 };

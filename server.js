@@ -32,6 +32,7 @@ if (
   );
 }
 
+// TODO: Maybe make use of this slack sdk instead, https://github.com/MissionsAI/slapp
 // TODO: Handle the error case where the bot is not invited to the channel
 
 // Create the adapter using the app's verification token
@@ -171,8 +172,12 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
           text: data.messages[0].text,
           attachments: data.messages[0].attachments
         };
-        updateField("slug", payload.submission.slug, msg);
-        updateField("language", payload.submission.language, msg);
+        const oldSlug = updateField("slug", payload.submission.slug, msg);
+        const oldLang = updateField(
+          "language",
+          payload.submission.language,
+          msg
+        );
 
         const newMsg = {
           channel,
@@ -192,13 +197,38 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
           })
           .then(data => {
             console.log("Update", data);
+
+            // TODO: Make this better :)
+
             // also post as a reply to the original message to update folks,
+
+            if (!oldSlug && !oldLang) {
+              // slug and lang didn't change
+              return;
+            }
+
             web.chat
               .postMessage({
                 channel,
                 thread_ts: ts,
-                // as_user: true, // this would make it show up as the user himself that did the update
-                text: `<@${payload.user.name}> just updated the slug/language!`
+                token: SLACK_BOT_ACCESS_TOKEN,
+                as_user: true, // this would make it show up as the user himself that did the update
+                text: `<@${payload.user.name}> just updated:
+${
+                  oldSlug
+                    ? `*Slug* from ~${
+                        oldSlug.split(" Alert for ")[1].split("`")[1] // this is ugly!
+                      }~ to \`${payload.submission.slug}\``
+                    : ""
+                }
+${
+                  oldLang
+                    ? `*Language* from ~${oldLang}~ to \n>${
+                        payload.submission.language
+                      }`
+                    : ""
+                }
+`
               })
               .then(data => {
                 console.log("done posting reply");
