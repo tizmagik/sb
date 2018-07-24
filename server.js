@@ -119,32 +119,6 @@ slackInteractions.action("action_selection", (payload, respond) => {
   }
 
   return payload.original_message;
-  // respond();
-  // console.log("\n\n---\n\n");
-
-  // web.conversations
-  //   .replies({
-  //     channel: payload.channel.id,
-  //     ts: payload.message_ts
-  //   })
-  //   .then(data => {
-  //     console.log("\n\n🍉 read\n");
-  //     // print(data, { depth: 15 });
-  //     print(data);
-  //     console.log("\n🍉🍉🍉🍉🍉🍉🍉🍉🍉\n");
-  //     respond({ ...data.messages[0], text: "🔥 Updated!" });
-  //   })
-  //   .catch(e => {
-  //     console.log("🔥🔥🔥");
-  //     // print(e);
-  //     print(e);
-  //     console.log("🔥🔥🔥");
-  //     response({
-  //       text: "Something failed..."
-  //     });
-  //   });
-
-  // respond({ ...data.message[0], text: "🔥 Updated!" });
 });
 
 slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
@@ -155,23 +129,17 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
     } submitted a dialog`
   );
 
+  const channel = payload.channel.id;
+
   if (payload.callback_id.startsWith(SL_ID)) {
-    console.log("Update slug/language");
-    print(payload);
-    const channel = payload.channel.id;
     const ts = payload.callback_id.split("|")[1];
 
     // get the original message content
     web.conversations
       .replies({ channel, ts })
       .then(data => {
-        console.log("\n\n🍉 read\n");
         print(data);
-
-        const msg = {
-          text: data.messages[0].text,
-          attachments: data.messages[0].attachments
-        };
+        const msg = data.messages[0];
         const oldSlug = updateField("slug", payload.submission.slug, msg);
         const oldLang = updateField(
           "language",
@@ -179,28 +147,18 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
           msg
         );
 
-        const newMsg = {
-          channel,
-          ts,
-          ...msg,
-          as_user: true // https://api.slack.com/methods/chat.update
-        };
-
-        print(newMsg);
-        console.log(" 📙   N E  W    !");
-
         // update that message with the payload of this dialog submission
         web.chat
           .update({
-            ...newMsg,
-            token: SLACK_BOT_ACCESS_TOKEN
+            ...msg,
+            channel,
+            ts,
+            token: SLACK_BOT_ACCESS_TOKEN,
+            as_user: true // https://api.slack.com/methods/chat.update
           })
           .then(data => {
-            console.log("Update", data);
-
-            // TODO: Make this better :)
-
             // also post as a reply to the original message to update folks,
+            // TODO: Make this better :)
 
             if (!oldSlug && !oldLang) {
               // slug and lang didn't change
@@ -214,13 +172,7 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
                 token: SLACK_BOT_ACCESS_TOKEN,
                 as_user: true, // this would make it show up as the user himself that did the update
                 text: `<@${payload.user.name}> just updated:
-${
-                  oldSlug
-                    ? `*Slug* from ~${
-                        oldSlug.split(" Alert for ")[1].split("`")[1] // this is ugly!
-                      }~ to \`${payload.submission.slug}\``
-                    : ""
-                }
+${oldSlug ? `*Slug* from ~${oldSlug}~ to \`${payload.submission.slug}\`` : ""}
 ${
                   oldLang
                     ? `*Language* from ~${oldLang}~ to \n>${
@@ -243,8 +195,6 @@ ${
             console.log("Error updating...");
             console.error(error);
           });
-
-        // web.chat.update({});
       })
       .catch(error => {
         console.log("Error reading replies");
@@ -269,24 +219,19 @@ ${
   console.log("Channel ID : ", payload.channel.id);
   web.chat
     .postMessage({
-      channel: payload.channel.id,
+      channel,
       token: SLACK_BOT_ACCESS_TOKEN,
+      as_user: true,
       ...msg
     })
     .then(data => {
-      print(data);
-      console.log(" THEN ");
+      // print(data);
     })
     .catch(error => {
       console.log("error posting message");
       console.error(error);
     });
-  // respond({
-  //   ...msg
-  //   // token: process.env.SLACK_BOT_ACCESS_TOKEN
-  // });
-  // respond(payload);
-  console.log(" ****************** ");
+
   return {}; // respond(payload);
 });
 

@@ -1,20 +1,14 @@
-const ALERT_PREFIX = "🚨 Alert for ";
+import { ALERT_PREFIX } from "../dialog/constants";
+import extract from "./extract";
 
 export const updateSlug = (slugOrUrl, msg) => {
-  console.log("🎯🎯🎯🎯🎯 updateSlug");
   let text = ALERT_PREFIX;
+  const oldSlug = extract("slug", msg);
 
-  if (slugOrUrl.startsWith("http")) {
-    text += slugOrUrl;
-  }
-
-  text += "`" + slugOrUrl + "`";
+  text += slugOrUrl.startsWith("http") ? slugOrUrl : "`" + slugOrUrl + "`";
   msg.text = text;
 
-  const newSlug = text.split(" Alert for ")[1].replace(/\`/g, "");
-  console.log("slugOrUrl", slugOrUrl, "newSlug", newSlug, "text", text);
-
-  return slugOrUrl !== newSlug && slugOrUrl; // return old value, if the value differs
+  return slugOrUrl !== oldSlug && oldSlug; // return old value, if the value differs
 };
 
 // Which fields should get the username treatment?

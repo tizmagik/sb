@@ -1,5 +1,5 @@
 {
-  "text": "🚨 ",
+  "text": ":rotating_light: Alert for ",
   "response_type": "in_channel",
   "as_user": true,
   "attachments": [
