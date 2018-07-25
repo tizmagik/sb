@@ -14,14 +14,7 @@ const audienceOptions = [
   "Targeted"
 ].map(a => ({ label: a, value: a }));
 
-const dialog = ({
-  slug = "faux-slug",
-  language,
-  desk,
-  audience,
-  audience2,
-  message_ts
-} = {}) => {
+const dialog = ({ slug = "faux-slug", language, desk, audience, audience2, message_ts } = {}) => {
   const isEdit = !!message_ts;
 
   return {
@@ -35,8 +28,7 @@ const dialog = ({
         name: "slug",
         value: slug,
         placeholder: "",
-        hint:
-          "Provide the slug for the alert (or URL, if you have it). You can update this later."
+        hint: "Provide the slug for the alert (or URL, if you have it). You can update this later."
       },
       {
         label: "Language for the alert",
@@ -52,7 +44,7 @@ const dialog = ({
         label: "Desk partner",
         type: "select",
         name: "desk",
-        value: desk,
+        value: desk === NOT_SET ? undefined : language,
         data_source: "users",
         placeholder: "Desk partner",
         hint: "You can change this later.",

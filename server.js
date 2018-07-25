@@ -154,6 +154,7 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
 
         const oldSlug = updateField("slug", payload.submission.slug, msg);
         const oldDesk = updateField("desk", payload.submission.desk, msg);
+        console.log("  DESK  ", payload.submission.desk, oldDesk);
         const oldAudience = updateField(
           "audience",
           displayAudience(payload.submission.audience, payload.submission.audience2),
