@@ -30,6 +30,20 @@ const formatValue = (field, value) => {
   return value;
 };
 
+/**
+ * Unformats <@usernames> for populating dialogs
+ *
+ * @param {string} field
+ * @param {string} value
+ */
+export const unformatValue = (field, value) => {
+  if (USERNAME_FIELD_TYPES.indexOf(field) !== -1) {
+    return value.replace(/^\<\@/, "").replace(/\>$/, "");
+  }
+
+  return value;
+};
+
 export const updateField = (field, value, msg) => {
   if (field === "slug") return updateSlug(value, msg);
 

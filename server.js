@@ -5,13 +5,28 @@ import { print } from "q-i";
 import { createMessageAdapter } from "@slack/interactive-messages";
 import { WebClient } from "@slack/client";
 import axios from "axios";
-import pitchDialog from "./dialog/pitch";
+import pitchDialog, { PA_NEW_ID, PA_EDIT_ID } from "./dialog/pitch";
 import slugLanguageDialog, { ID as SL_ID } from "./dialog/slug-language";
 import { initialMessage } from "./message/initial";
 import extract from "./message/extract";
 import { updateField } from "./message/update";
 
 global.print = print;
+
+const println = s => console.log("\n", s.repeat(20), "\n");
+const printw = (e, o) => {
+  println(e);
+  print(o);
+  println(e);
+};
+
+process.on("uncaughtException", e => {
+  console.error("[uncaught exception]", e);
+});
+
+process.on("unhandledRejection", e => {
+  console.error("[unhandledRejection]", e);
+});
 
 console.log("Server booting up");
 
@@ -73,15 +88,23 @@ http.createServer(app).listen(port, () => {
 });
 
 const showSlugLanugageDialog = payload => {
-  const language = extract("language", payload.original_message);
+  printw("☢️", payload);
   const slug = extract("slug", payload.original_message);
+  const language = extract("language", payload.original_message);
+  const desk = extract("desk", payload.original_message);
+  const audience = extract("audience", payload.original_message);
+  const audience2 = extract("audience2", payload.original_message);
+  console.log("here", desk);
 
   web.dialog
     .open({
       trigger_id: payload.trigger_id,
-      dialog: slugLanguageDialog({
+      dialog: pitchDialog({
         slug,
         language,
+        desk,
+        audience,
+        audience2,
         message_ts: payload.message_ts
       })
     })
@@ -104,7 +127,7 @@ slackInteractions.action("action_selection", (payload, respond) => {
   print(payload);
 
   if (payload.type === "interactive_message") {
-    const selectedOption = payload.actions[0].selected_options[0].value;
+    const selectedOption = payload.actions[0].value;
 
     if (selectedOption === "edit") {
       // show the edit slug/language dialog
@@ -128,10 +151,12 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
       payload.team.domain
     } submitted a dialog`
   );
+  print(payload);
+  console.log("\n\n---\n\n");
 
   const channel = payload.channel.id;
 
-  if (payload.callback_id.startsWith(SL_ID)) {
+  if (payload.callback_id.startsWith(PA_EDIT_ID)) {
     const ts = payload.callback_id.split("|")[1];
 
     // get the original message content
@@ -213,6 +238,20 @@ ${
   // }>\nAudience: ${payload.submission.audience}\nFin..`;
 
   print(payload);
+  // console.log("about to open dialog");
+  // web.dialog
+  //   .open({
+  //     trigger_id: payload.trigger_id,
+  //     dialog: {
+  //       text: "hi"
+  //     }
+  //   })
+  //   .then(data => {
+  //     console.log("chained dialog", data);
+  //   })
+  //   .catch(error => {
+  //     console.log("error chaining dialog", error);
+  //   });
 
   const msg = initialMessage(payload.submission);
   updateField("owner", payload.user.id, msg);
@@ -252,11 +291,25 @@ function slackSlashCommand(req, res, next) {
   const type = req.body.text.split(" ")[0];
   if (type === "news") {
     res.send();
+    const trigger_id = req.body.trigger_id;
     web.dialog
       .open({
-        trigger_id: req.body.trigger_id,
-        dialog: pitchDialog
+        trigger_id,
+        dialog: pitchDialog()
       })
+      // .then(data => {
+      //   console.log("dialog returned");
+      //   print(data);
+      //   return;
+      //   web.dialog
+      //     .open({ trigger_id, dialog: { text: "hi" } })
+      //     .then(data => {
+      //       console.log("then data from chained");
+      //     })
+      //     .catch(error => {
+      //       console.log("error chaining", error);
+      //     });
+      // })
       .catch(error => {
         console.error(error);
         return axios.post(req.body.response_url, {
