@@ -1,4 +1,4 @@
-export const NOT_SET = "_(not set)_";
+import { NOT_SET } from "../dialog/constants";
 
 export default {
   text: ":rotating_light: Alert for ",
@@ -35,9 +35,13 @@ export default {
         },
         {
           title: "Readers",
-          value:
-            "_At least 1 approval is required. Request an approval from someone via the people button below._",
-          short: false
+          value: NOT_SET,
+          short: true
+        },
+        {
+          title: "Approvals",
+          value: NOT_SET,
+          short: true
         }
       ]
     },

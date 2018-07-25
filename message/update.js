@@ -1,4 +1,4 @@
-import { ALERT_PREFIX } from "../dialog/constants";
+import { ALERT_PREFIX, NOT_SET } from "../dialog/constants";
 import extract from "./extract";
 
 export const updateSlug = (slugOrUrl, msg) => {
@@ -21,7 +21,7 @@ const USERNAME_FIELD_TYPES = ["desk", "owner", "sender", "readers"];
  * @param {string} value
  */
 const formatValue = (field, value) => {
-  if (!value) return "_(not set)_";
+  if (!value) return NOT_SET;
 
   if (USERNAME_FIELD_TYPES.indexOf(field) !== -1) {
     return `<@${value}>`;

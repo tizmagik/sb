@@ -1,4 +1,4 @@
-import { NOT_SET } from "../message/template";
+import { NOT_SET } from "../dialog/constants";
 
 export const PA_EDIT_ID = "pa|"; // pitch alert
 export const PA_NEW_ID = "pan"; // pitch alert new
@@ -16,6 +16,8 @@ const audienceOptions = [
 
 const dialog = ({ slug = "faux-slug", language, desk, audience, audience2, message_ts } = {}) => {
   const isEdit = !!message_ts;
+
+  console.log(" DESK IS ", desk);
 
   return {
     callback_id: isEdit ? `${PA_EDIT_ID}${message_ts}` : PA_NEW_ID,
@@ -44,7 +46,7 @@ const dialog = ({ slug = "faux-slug", language, desk, audience, audience2, messa
         label: "Desk partner",
         type: "select",
         name: "desk",
-        value: desk === NOT_SET ? undefined : language,
+        value: desk === NOT_SET ? undefined : desk,
         data_source: "users",
         placeholder: "Desk partner",
         hint: "You can change this later.",

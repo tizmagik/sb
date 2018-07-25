@@ -6,6 +6,7 @@ import { createMessageAdapter } from "@slack/interactive-messages";
 import { WebClient } from "@slack/client";
 import axios from "axios";
 import pitchDialog, { PA_NEW_ID, PA_EDIT_ID } from "./dialog/pitch";
+import peopleDialog, { PP_ID } from "./dialog/people";
 import { initialMessage } from "./message/initial";
 import extract from "./message/extract";
 import { updateField } from "./message/update";
@@ -13,11 +14,13 @@ import { displayAudience } from "./formatters";
 
 // Global Helpers for debugging, remove later!
 // TODO: Remove before productionalizing
-const println = s => console.log("\n", s.repeat(20), "\n");
+const println = s => console.log(` ${s} `.repeat(10));
 const printw = (e, o) => {
+  console.log("\nSTART");
   println(e);
   print(o);
   println(e);
+  console.log("END\n");
 };
 
 global.print = print;
@@ -80,13 +83,15 @@ http.createServer(app).listen(port, () => {
   console.log(`server listening on port ${port}`);
 });
 
-const showSlugLanugageDialog = payload => {
+const showPitchDialog = payload => {
   printw("⏬", payload);
   const slug = extract("slug", payload.original_message);
   const language = extract("language", payload.original_message);
   const desk = extract("desk", payload.original_message);
   const audience = extract("audience", payload.original_message);
   const audience2 = extract("audience2", payload.original_message);
+
+  console.log(" AUDIENCE ", audience, audience2);
 
   web.dialog
     .open({
@@ -97,6 +102,36 @@ const showSlugLanugageDialog = payload => {
         desk,
         audience,
         audience2,
+        message_ts: payload.message_ts
+      })
+    })
+    .catch(error => {
+      console.error(error);
+      return axios.post(payload.response_url, {
+        text: `An error occurred while opening the dialog: ${error.message}`
+      });
+    })
+    .catch(console.error);
+};
+
+const showPeopleDialog = payload => {
+  printw("🤔", payload);
+
+  const owner = extract("owner", payload.original_message);
+  const sender = extract("sender", payload.original_message);
+  const reader = extract("reader", payload.original_message);
+  const reader2 = extract("reader2", payload.original_message);
+
+  console.log(" PEOPLE ", owner, sender, reader, reader2);
+
+  web.dialog
+    .open({
+      trigger_id: payload.trigger_id,
+      dialog: peopleDialog({
+        owner,
+        sender,
+        reader,
+        reader2,
         message_ts: payload.message_ts
       })
     })
@@ -121,7 +156,9 @@ slackInteractions.action("action_selection", (payload, respond) => {
 
     if (selectedOption === "edit") {
       // show the edit slug/language dialog
-      showSlugLanugageDialog(payload);
+      showPitchDialog(payload);
+    } else if (selectedOption === "people") {
+      showPeopleDialog(payload);
     } else {
       web.chat.postEphemeral({
         channel: payload.channel.id,
@@ -137,14 +174,17 @@ slackInteractions.action("action_selection", (payload, respond) => {
 slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
   // `payload` is an object that describes the interaction
   console.log(
-    `\n\nThe user ${payload.user.name} in team ${payload.team.domain} submitted a dialog`
+    `\n\n☢️ The user ${payload.user.name} in team ${payload.team.domain} submitted a dialog (${
+      payload.callback_id
+    })`
   );
 
   const channel = payload.channel.id;
+  const [, ts] = payload.callback_id.split("|");
+
+  printw("💰", payload);
 
   if (payload.callback_id.startsWith(PA_EDIT_ID)) {
-    const ts = payload.callback_id.split("|")[1];
-
     // get the original message content
     web.conversations
       .replies({ channel, ts })
@@ -154,13 +194,14 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
 
         const oldSlug = updateField("slug", payload.submission.slug, msg);
         const oldDesk = updateField("desk", payload.submission.desk, msg);
-        console.log("  DESK  ", payload.submission.desk, oldDesk);
         const oldAudience = updateField(
           "audience",
           displayAudience(payload.submission.audience, payload.submission.audience2),
           msg
         );
         const oldLang = updateField("language", payload.submission.language, msg);
+
+        printw("🀄️", msg);
 
         // update that message with the payload of this dialog submission
         web.chat
@@ -227,7 +268,14 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
       });
 
     return {};
-  } // end edit
+    // end PA_EDIT_ID
+  } else if (payload.callback_id.startsWith(PP_ID)) {
+    // people dialog
+    console.log("People dialog was pressed");
+    printw("😅", payload);
+
+    return {};
+  }
 
   // const partialMessage = `<@${
   //   payload.user.id
