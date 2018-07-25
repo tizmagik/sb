@@ -57,6 +57,7 @@ export const updateField = (field, value, msg) => {
   });
 
   if (i === -1) {
+    print(msg.attachments[0].fields);
     console.error(`Couldn't find ${field}`);
     return;
   }

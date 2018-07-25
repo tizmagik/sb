@@ -6,19 +6,22 @@ import { createMessageAdapter } from "@slack/interactive-messages";
 import { WebClient } from "@slack/client";
 import axios from "axios";
 import pitchDialog, { PA_NEW_ID, PA_EDIT_ID } from "./dialog/pitch";
-import slugLanguageDialog, { ID as SL_ID } from "./dialog/slug-language";
 import { initialMessage } from "./message/initial";
 import extract from "./message/extract";
 import { updateField } from "./message/update";
+import { displayAudience } from "./formatters";
 
-global.print = print;
-
+// Global Helpers for debugging, remove later!
+// TODO: Remove before productionalizing
 const println = s => console.log("\n", s.repeat(20), "\n");
 const printw = (e, o) => {
   println(e);
   print(o);
   println(e);
 };
+
+global.print = print;
+global.printw = printw;
 
 process.on("uncaughtException", e => {
   console.error("[uncaught exception]", e);
@@ -31,20 +34,10 @@ process.on("unhandledRejection", e => {
 console.log("Server booting up");
 
 // Read the verification token from the environment variables
-const {
-  SLACK_VERIFICATION_TOKEN,
-  SLACK_ACCESS_TOKEN,
-  SLACK_BOT_ACCESS_TOKEN
-} = process.env;
+const { SLACK_VERIFICATION_TOKEN, SLACK_ACCESS_TOKEN, SLACK_BOT_ACCESS_TOKEN } = process.env;
 
-if (
-  !SLACK_VERIFICATION_TOKEN ||
-  !SLACK_ACCESS_TOKEN ||
-  !SLACK_BOT_ACCESS_TOKEN
-) {
-  throw new Error(
-    "Slack verification token and access token are required to run this app."
-  );
+if (!SLACK_VERIFICATION_TOKEN || !SLACK_ACCESS_TOKEN || !SLACK_BOT_ACCESS_TOKEN) {
+  throw new Error("Slack verification token and access token are required to run this app.");
 }
 
 // TODO: Maybe make use of this slack sdk instead, https://github.com/MissionsAI/slapp
@@ -74,7 +67,7 @@ app.post("/slack/commands", slackSlashCommand);
 
 app.post("/slack/events", (req, res, next) => {
   console.log("/slack/events", new Date());
-  print(req.body);
+  printw("🔄", req.body);
   if (req.body.challenge) {
     return res.end(req.body.challenge);
   }
@@ -88,13 +81,12 @@ http.createServer(app).listen(port, () => {
 });
 
 const showSlugLanugageDialog = payload => {
-  printw("☢️", payload);
+  printw("⏬", payload);
   const slug = extract("slug", payload.original_message);
   const language = extract("language", payload.original_message);
   const desk = extract("desk", payload.original_message);
   const audience = extract("audience", payload.original_message);
   const audience2 = extract("audience2", payload.original_message);
-  console.log("here", desk);
 
   web.dialog
     .open({
@@ -119,12 +111,10 @@ const showSlugLanugageDialog = payload => {
 
 slackInteractions.action("action_selection", (payload, respond) => {
   console.log(
-    `\n\n☢️ The user ${payload.user.name} in team ${
-      payload.team.domain
-    } chose an action`
+    `\n\n☢️ The user ${payload.user.name} in team ${payload.team.domain} chose an action`
   );
 
-  print(payload);
+  printw("☢️", payload);
 
   if (payload.type === "interactive_message") {
     const selectedOption = payload.actions[0].value;
@@ -147,12 +137,8 @@ slackInteractions.action("action_selection", (payload, respond) => {
 slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
   // `payload` is an object that describes the interaction
   console.log(
-    `\n\nThe user ${payload.user.name} in team ${
-      payload.team.domain
-    } submitted a dialog`
+    `\n\nThe user ${payload.user.name} in team ${payload.team.domain} submitted a dialog`
   );
-  print(payload);
-  console.log("\n\n---\n\n");
 
   const channel = payload.channel.id;
 
@@ -163,14 +149,17 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
     web.conversations
       .replies({ channel, ts })
       .then(data => {
-        print(data);
+        printw("🔴", data);
         const msg = data.messages[0];
+
         const oldSlug = updateField("slug", payload.submission.slug, msg);
-        const oldLang = updateField(
-          "language",
-          payload.submission.language,
+        const oldDesk = updateField("desk", payload.submission.desk, msg);
+        const oldAudience = updateField(
+          "audience",
+          displayAudience(payload.submission.audience, payload.submission.audience2),
           msg
         );
+        const oldLang = updateField("language", payload.submission.language, msg);
 
         // update that message with the payload of this dialog submission
         web.chat
@@ -185,10 +174,29 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
             // also post as a reply to the original message to update folks,
             // TODO: Make this better :)
 
-            if (!oldSlug && !oldLang) {
-              // slug and lang didn't change
+            if (!oldSlug && !oldLang && !oldDesk && !oldAudience && !oldAudience2) {
+              // nothing changed, don't post an update
               return;
             }
+
+            let updatedText = `<@${payload.user.name}> just updated:\n`;
+
+            updatedText += oldSlug
+              ? `*Slug* from ~${oldSlug}~ to \`${payload.submission.slug}\`\n`
+              : "";
+            updatedText += oldLang
+              ? `*Language* from ~${oldLang}~ to \n>${payload.submission.language}\n`
+              : "";
+            updatedText += oldDesk
+              ? `*Desk partner* from <@${oldDesk}> to <@${payload.submission.desk}>\n`
+              : "";
+
+            updatedText += oldAudience
+              ? `*Audience* from ~${oldAudience}~ to ${displayAudience(
+                  payload.submission.audience,
+                  payload.submission.audience2
+                )}`
+              : "";
 
             web.chat
               .postMessage({
@@ -196,16 +204,7 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
                 thread_ts: ts,
                 token: SLACK_BOT_ACCESS_TOKEN,
                 as_user: true, // this would make it show up as the user himself that did the update
-                text: `<@${payload.user.name}> just updated:
-${oldSlug ? `*Slug* from ~${oldSlug}~ to \`${payload.submission.slug}\`` : ""}
-${
-                  oldLang
-                    ? `*Language* from ~${oldLang}~ to \n>${
-                        payload.submission.language
-                      }`
-                    : ""
-                }
-`
+                text: updatedText
               })
               .then(data => {
                 console.log("done posting reply");
@@ -237,7 +236,7 @@ ${
   //   payload.submission.desk
   // }>\nAudience: ${payload.submission.audience}\nFin..`;
 
-  print(payload);
+  printw("1️⃣", payload);
   // console.log("about to open dialog");
   // web.dialog
   //   .open({
@@ -285,8 +284,6 @@ function slackSlashCommand(req, res, next) {
   if (req.body.command != "/interactive-example") {
     return next();
   }
-
-  print(req.body);
 
   const type = req.body.text.split(" ")[0];
   if (type === "news") {

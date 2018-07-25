@@ -4,15 +4,15 @@ export const PA_EDIT_ID = "pa|"; // pitch alert
 export const PA_NEW_ID = "pan"; // pitch alert new
 
 const audienceOptions = [
-  {
-    label: "News",
-    value: "news"
-  },
-  {
-    label: "Business",
-    value: "business"
-  }
-];
+  "Breaking News",
+  "Top Stories",
+  "Apple News",
+  "Politics",
+  "Business",
+  "New York",
+  "Sports",
+  "Targeted"
+].map(a => ({ label: a, value: a }));
 
 const dialog = ({
   slug = "faux-slug",
@@ -23,8 +23,6 @@ const dialog = ({
   message_ts
 } = {}) => {
   const isEdit = !!message_ts;
-
-  console.log("audience", audience, "audience2", audience2);
 
   return {
     callback_id: isEdit ? `${PA_EDIT_ID}${message_ts}` : PA_NEW_ID,
