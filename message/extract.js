@@ -9,7 +9,7 @@ const extractSlug = msg => msg.text.split(ALERT_PREFIX)[1].replace(/`/g, "");
 
 const extractField = (field, msg) => {
   print(msg.attachments[0].fields);
-  console.log(field);
+
   const value = msg.attachments[0].fields.find(
     // this indexOf is to paper over "audience2" which we want to resolve to "Audience"
     // the .replace(/s$/) is so that "reader" can resolve to to "Readers" (same for "Approvals")
@@ -22,8 +22,6 @@ const extractField = (field, msg) => {
       ) > -1
   ).value;
 
-  console.log("field", field, " / ", "value", value);
-
   // to handle audience
   if (field.startsWith("audience")) {
     const [audience, audience2] = value.split(", ");
@@ -33,7 +31,7 @@ const extractField = (field, msg) => {
   // to handle reader
   if (field.startsWith("reader")) {
     const [reader, reader2] = value.split(", ");
-    return field === "reader" ? reader : reader2;
+    return unformatValue(field, field === "reader" ? reader : reader2);
   }
 
   return unformatValue(field, value);

@@ -10,7 +10,7 @@ import peopleDialog, { PP_ID } from "./dialog/people";
 import { initialMessage } from "./message/initial";
 import extract from "./message/extract";
 import { updateField } from "./message/update";
-import { displayAudience } from "./formatters";
+import { displayAudience, displayReaders, displayUser } from "./formatters";
 
 // Global Helpers for debugging, remove later!
 // TODO: Remove before productionalizing
@@ -122,8 +122,6 @@ const showPeopleDialog = payload => {
   const reader = extract("reader", payload.original_message);
   const reader2 = extract("reader2", payload.original_message);
 
-  console.log(" PEOPLE ", owner, sender, reader, reader2);
-
   web.dialog
     .open({
       trigger_id: payload.trigger_id,
@@ -216,7 +214,7 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
             // also post as a reply to the original message to update folks,
             // TODO: Make this better :)
 
-            if (!oldSlug && !oldLang && !oldDesk && !oldAudience && !oldAudience2) {
+            if (!oldSlug && !oldLang && !oldDesk && !oldAudience) {
               // nothing changed, don't post an update
               return;
             }
@@ -270,11 +268,88 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
     return {};
     // end PA_EDIT_ID
   } else if (payload.callback_id.startsWith(PP_ID)) {
-    // people dialog
-    console.log("People dialog was pressed");
+    // start PP_ID
     printw("😅", payload);
 
+    // TODO: DRY this up! 🙈
+
+    // get the original message content
+    web.conversations
+      .replies({ channel, ts })
+      .then(data => {
+        printw("🔴", data);
+        const msg = data.messages[0];
+
+        const oldOwner = updateField("owner", payload.submission.owner, msg);
+        const oldSender = updateField("sender", payload.submission.sender, msg);
+        const oldReaders = updateField(
+          "readers",
+          displayReaders(payload.submission.reader, payload.submission.reader2),
+          msg
+        );
+
+        // update that message with the payload of this dialog submission
+        web.chat
+          .update({
+            ...msg,
+            channel,
+            ts,
+            token: SLACK_BOT_ACCESS_TOKEN,
+            as_user: true // https://api.slack.com/methods/chat.update
+          })
+          .then(data => {
+            // also post as a reply to the original message to update folks,
+            // TODO: Make this better :)
+
+            if (!oldOwner && !oldSender && !oldReaders) {
+              // nothing changed, don't post an update
+              return;
+            }
+
+            let updatedText = `<@${payload.user.name}> just updated:\n`;
+
+            updatedText += oldOwner
+              ? `*Owner* from ~${oldOwner}~ to ${displayUser(payload.submission.owner)}\n`
+              : "";
+            updatedText += oldSender
+              ? `*Sender* from ~${oldSender}~ to ${displayUser(payload.submission.sender)}\n`
+              : "";
+            updatedText += oldReaders
+              ? `*Readers* from ~${oldReaders}~ to ${displayReaders(
+                  payload.submission.reader,
+                  payload.submission.reader2
+                )}\n`
+              : "";
+
+            web.chat
+              .postMessage({
+                channel,
+                thread_ts: ts,
+                token: SLACK_BOT_ACCESS_TOKEN,
+                as_user: true, // this would make it show up as the user himself that did the update
+                text: updatedText
+              })
+              .then(data => {
+                console.log("done posting reply");
+                console.log(data);
+              })
+              .catch(error => {
+                console.log("Error posting reply");
+                console.error(error);
+              });
+          })
+          .catch(error => {
+            console.log("Error updating...");
+            console.error(error);
+          });
+      })
+      .catch(error => {
+        console.log("Error reading replies");
+        console.error(error);
+      });
+
     return {};
+    // end PP_ID
   }
 
   // const partialMessage = `<@${
@@ -303,7 +378,6 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
 
   const msg = initialMessage(payload.submission);
   updateField("owner", payload.user.id, msg);
-  console.log("Channel ID : ", payload.channel.id);
   web.chat
     .postMessage({
       channel,

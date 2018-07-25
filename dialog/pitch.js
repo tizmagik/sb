@@ -16,9 +16,6 @@ const audienceOptions = [
 
 const dialog = ({ slug = "faux-slug", language, desk, audience, audience2, message_ts } = {}) => {
   const isEdit = !!message_ts;
-
-  console.log(" DESK IS ", desk);
-
   return {
     callback_id: isEdit ? `${PA_EDIT_ID}${message_ts}` : PA_NEW_ID,
     title: isEdit ? "Update Alert" : "Pitch an Alert",
