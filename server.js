@@ -4,15 +4,13 @@ import bodyParser from "body-parser";
 import { print } from "q-i";
 import { createMessageAdapter } from "@slack/interactive-messages";
 import { WebClient } from "@slack/client";
-import pitchDialog, { PA_NEW_ID, PA_EDIT_ID } from "./dialog/pitch";
+import pitchDialog, { PA_EDIT_ID } from "./dialog/pitch";
 import peopleDialog, { PP_ID } from "./dialog/people";
 import { initialMessage } from "./message/initial";
 import extract from "./message/extract";
-import { updateField } from "./message/update";
-import { displayAudience, displayReaders, displayUser, whatChanged } from "./formatters";
-import slackDiff from "./formatters/slackDiff";
+import { updateField, updateStatus, updateSent } from "./message/update";
+import { displayAudience, displayReaders, whatChanged } from "./formatters";
 import { FIELDS } from "./dialog/constants";
-import { FORMERR } from "dns";
 
 // Global Helpers for debugging, remove later!
 // TODO: Remove before productionalizing
@@ -164,8 +162,7 @@ const addApproval = payload => {
 
   // Post in thread about added approval
   const added = updateField("approvals", user, msg);
-
-  console.log(" _____________________ ", added);
+  updateStatus(msg);
 
   if (added) {
     web.chat
@@ -208,6 +205,35 @@ const addApproval = payload => {
   }
 };
 
+const markSent = payload => {
+  const msg = payload.original_message;
+  const channel = payload.channel.id;
+  const user = payload.user.id;
+  const ts = payload.message_ts;
+
+  console.log("HERE");
+
+  updateSent(user, msg);
+
+  print("🏁", msg);
+
+  web.chat.update({
+    ...msg,
+    channel,
+    ts,
+    token: SLACK_BOT_ACCESS_TOKEN,
+    as_user: true // https://api.slack.com/methods/chat.update
+  });
+
+  // if (msg.attachments[IDX.ACTIONS].text !== READY_TO_SEND) {
+  //   web.chat.postEphemeral({
+  //     channel,
+  //     user,
+  //     text: "Still waiting on approvals. If you want to override this, click confirm."
+  //   });
+  // }
+};
+
 slackInteractions.action("action_selection", (payload, respond) => {
   console.log(
     `\n\n☢️ The user ${payload.user.name} in team ${payload.team.domain} chose an action`
@@ -225,6 +251,8 @@ slackInteractions.action("action_selection", (payload, respond) => {
       showPeopleDialog(payload);
     } else if (selectedOption === "approve") {
       addApproval(payload);
+    } else if (selectedOption === "sent") {
+      markSent(payload);
     } else {
       web.chat
         .postEphemeral({
@@ -257,7 +285,6 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
     web.conversations
       .replies({ channel, ts })
       .then(data => {
-        printw("🔴", data);
         const msg = data.messages[0];
 
         const oldSlug = updateField(FIELDS.SLUG, payload.submission.slug, msg);
@@ -269,7 +296,7 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
         );
         const oldLang = updateField(FIELDS.LANGUAGE, payload.submission.language, msg);
 
-        printw("🀄️", msg);
+        updateStatus(msg);
 
         // update that message with the payload of this dialog submission
         web.chat
@@ -352,6 +379,8 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
         );
         const oldSender = updateField(FIELDS.SENDER, payload.submission.sender, msg);
 
+        updateStatus(msg);
+
         // update that message with the payload of this dialog submission
         web.chat
           .update({
@@ -412,8 +441,6 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
     return {};
     // end PP_ID
   }
-
-  printw("1️⃣", payload);
 
   const msg = initialMessage(payload.submission);
   updateField(FIELDS.OWNER, payload.user.id, msg);

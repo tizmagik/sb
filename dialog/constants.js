@@ -1,7 +1,21 @@
 import { titleCase } from "change-case";
 
+export const IDX = {
+  ALERT: 0,
+  FIELDS: 1,
+  ACTIONS: 2
+};
+
+export const STATES = {
+  // these can be #HEX colors
+  INITIAL: "danger",
+  APPROVED: "warning",
+  SENT: "good"
+};
+
 export const ALERT_PREFIX = ":rotating_light: Alert for ";
 export const NOT_SET = "_(none yet)_";
+export const READY_TO_SEND = "_🏁 Ready to send!_";
 
 export const USER = "user"; // this is for formatting purposes when talking to user directly
 export const SLUG = "slug";

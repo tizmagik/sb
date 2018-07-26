@@ -1,12 +1,20 @@
-import { NOT_SET } from "../dialog/constants";
+import { ALERT_PREFIX, NOT_SET, STATES } from "../dialog/constants";
 
 export default {
-  text: ":rotating_light: Alert for ",
   response_type: "in_channel",
   as_user: true,
   attachments: [
     {
+      mrkdwn_in: ["text"],
+      text: ALERT_PREFIX,
+      fallback: "",
+      color: STATES.INITIAL,
+      attachment_type: "default",
+      callback_id: "action_selection"
+    },
+    {
       mrkdwn_in: ["fields"],
+      color: STATES.INITIAL,
       fields: [
         {
           title: "Language",
@@ -50,7 +58,7 @@ export default {
       text: "",
       fallback:
         "Your Slack client does not support interactive messages. Please try a different Slack client.",
-      color: "#ffffff",
+      color: STATES.INITIAL,
       attachment_type: "default",
       callback_id: "action_selection",
       actions: [
@@ -84,33 +92,6 @@ export default {
             dismiss_text: "No"
           }
         }
-        // {
-        //   name: "action_list",
-        //   text: "Choose an action...",
-        //   type: "select",
-        //   options: [
-        //     {
-        //       text: "✏️ Edit the slug or language...",
-        //       value: "edit"
-        //     },
-        //     {
-        //       text: "👥 Edit desk, audience or owner...",
-        //       value: "editmeta"
-        //     },
-        //     {
-        //       text: "🔲 Request approval from...",
-        //       value: "request"
-        //     },
-        //     {
-        //       text: "✅ Add approval",
-        //       value: "approve"
-        //     },
-        //     {
-        //       text: "🏁 Mark as sent",
-        //       value: "sent"
-        //     }
-        //   ]
-        // }
       ]
     }
   ]

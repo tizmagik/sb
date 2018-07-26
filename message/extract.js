@@ -3,18 +3,16 @@
  *
  */
 import { unformatValue } from "./update";
-import { ALERT_PREFIX, NOT_SET } from "../dialog/constants";
+import { ALERT_PREFIX, NOT_SET, IDX } from "../dialog/constants";
 
 const extractSlug = msg =>
-  msg.text
+  msg.attachments[IDX.ALERT].text
     .split(ALERT_PREFIX)[1]
     .replace(/`/g, "") // this removes the ` from displaying
     .replace(/\<|\>/g, ""); // this removes the extra "<>" arround URLs
 
 const extractField = (field, msg) => {
-  print(msg.attachments[0].fields);
-
-  const value = msg.attachments[0].fields.find(
+  const value = msg.attachments[IDX.FIELDS].fields.find(
     // this indexOf is to paper over "audience2" which we want to resolve to "Audience"
     // the .replace(/s$/) is so that "reader" can resolve to to "Readers" (same for "Approvals")
     f =>
@@ -42,8 +40,9 @@ const extractField = (field, msg) => {
 };
 
 const extractApprovals = msg => {
-  const approvals = msg.attachments[0].fields.find(f => f.title.toLowerCase() === "approvals")
-    .value;
+  const approvals = msg.attachments[IDX.FIELDS].fields.find(
+    f => f.title.toLowerCase() === "approvals"
+  ).value;
 
   if (approvals === NOT_SET) return [];
 
