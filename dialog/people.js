@@ -2,7 +2,7 @@ import { NOT_SET } from "../message/template";
 
 export const PP_ID = "pp|"; // people
 
-const dialog = ({ owner, sender, reader, reader2, message_ts } = {}) => {
+const dialog = ({ owner, desk, sender, reader, reader2, message_ts } = {}) => {
   return {
     callback_id: `${PP_ID}${message_ts}`,
     title: "Update People",
@@ -15,17 +15,18 @@ const dialog = ({ owner, sender, reader, reader2, message_ts } = {}) => {
         value: owner === NOT_SET ? undefined : owner,
         data_source: "users",
         placeholder: "Owner",
-        hint: "Who owns this alert?",
+        // hint: "Who owns this alert?",
         optional: false
       },
+      // TODO: Dedupe this from the one in pitch.js
       {
-        label: "Sender",
+        label: "Desk Editor",
         type: "select",
-        name: "sender",
-        value: sender === NOT_SET ? undefined : sender,
+        name: "desk",
+        value: desk === NOT_SET ? undefined : desk,
         data_source: "users",
-        placeholder: "Sender",
-        hint: "Who will be sending this alert?",
+        placeholder: "Desk Editor",
+        // hint: "You can change this later.",
         optional: true
       },
       {
@@ -35,7 +36,7 @@ const dialog = ({ owner, sender, reader, reader2, message_ts } = {}) => {
         value: reader === NOT_SET ? undefined : reader,
         data_source: "users",
         placeholder: "Primary reader",
-        hint: "Who's the primary reader?",
+        // hint: "Who's the primary reader?",
         optional: true
       },
       {
@@ -45,7 +46,17 @@ const dialog = ({ owner, sender, reader, reader2, message_ts } = {}) => {
         value: reader2 === NOT_SET ? undefined : reader2,
         data_source: "users",
         placeholder: "Secondary reader",
-        hint: "Who's the secondary reader?",
+        // hint: "Who's the secondary reader?",
+        optional: true
+      },
+      {
+        label: "Sender",
+        type: "select",
+        name: "sender",
+        value: sender === NOT_SET ? undefined : sender,
+        data_source: "users",
+        placeholder: "Sender",
+        // hint: "Who will be sending this alert?",
         optional: true
       }
     ]

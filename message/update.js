@@ -1,5 +1,5 @@
-import { ALERT_PREFIX, NOT_SET } from "../dialog/constants";
-import { displayUser } from "../formatters";
+import { ALERT_PREFIX, FIELDS } from "../dialog/constants";
+import { formatValue } from "../formatters";
 import extract from "./extract";
 
 export const updateSlug = (slugOrUrl, msg) => {
@@ -12,26 +12,6 @@ export const updateSlug = (slugOrUrl, msg) => {
   return slugOrUrl !== oldSlug && oldSlug; // return old value, if the value differs
 };
 
-// Which fields should get the username treatment?
-const USERNAME_FIELD_TYPES = ["desk", "owner", "sender", "reader", "reader2", "approvals"];
-
-/**
- * Formats @usernames for fields that should hyperlink users
- *
- * @param {string} field
- * @param {string} value
- */
-const formatValue = (field, value) => {
-  if (!value) return NOT_SET;
-  if (value === NOT_SET) return value;
-
-  if (USERNAME_FIELD_TYPES.indexOf(field) !== -1) {
-    return displayUser(value);
-  }
-
-  return value;
-};
-
 /**
  * Unformats <@usernames> for populating dialogs
  *
@@ -40,7 +20,7 @@ const formatValue = (field, value) => {
  */
 export const unformatValue = (field, value) => {
   if (!value) return value;
-  if (USERNAME_FIELD_TYPES.indexOf(field) !== -1) {
+  if (FIELDS.isUserField(field)) {
     return value.replace(/\<\@/g, "").replace(/\>/g, "");
   }
 

@@ -4,13 +4,15 @@ import bodyParser from "body-parser";
 import { print } from "q-i";
 import { createMessageAdapter } from "@slack/interactive-messages";
 import { WebClient } from "@slack/client";
-import axios from "axios";
 import pitchDialog, { PA_NEW_ID, PA_EDIT_ID } from "./dialog/pitch";
 import peopleDialog, { PP_ID } from "./dialog/people";
 import { initialMessage } from "./message/initial";
 import extract from "./message/extract";
 import { updateField } from "./message/update";
-import { displayAudience, displayReaders, displayUser } from "./formatters";
+import { displayAudience, displayReaders, displayUser, whatChanged } from "./formatters";
+import slackDiff from "./formatters/slackDiff";
+import { FIELDS } from "./dialog/constants";
+import { FORMERR } from "dns";
 
 // Global Helpers for debugging, remove later!
 // TODO: Remove before productionalizing
@@ -83,11 +85,11 @@ http.createServer(app).listen(port, () => {
 
 const showPitchDialog = payload => {
   printw("⏬", payload);
-  const slug = extract("slug", payload.original_message);
-  const language = extract("language", payload.original_message);
-  const desk = extract("desk", payload.original_message);
-  const audience = extract("audience", payload.original_message);
-  const audience2 = extract("audience2", payload.original_message);
+  const slug = extract(FIELDS.SLUG, payload.original_message);
+  const language = extract(FIELDS.LANGUAGE, payload.original_message);
+  const desk = extract(FIELDS.DESK, payload.original_message);
+  const audience = extract(FIELDS.AUDIENCE, payload.original_message);
+  const audience2 = extract(FIELDS.AUDIENCE2, payload.original_message);
 
   console.log(" AUDIENCE ", audience, audience2);
 
@@ -105,9 +107,13 @@ const showPitchDialog = payload => {
     })
     .catch(error => {
       console.error(error);
-      return axios.post(payload.response_url, {
-        text: `An error occurred while opening the dialog: ${error.message}`
-      });
+      web.chat
+        .postEphemeral({
+          channel: payload.channel.id,
+          user: payload.user.id,
+          text: `Sorry, an error occurred while opening the dialog: ${error.message}`
+        })
+        .catch(console.error);
     })
     .catch(console.error);
 };
@@ -115,27 +121,33 @@ const showPitchDialog = payload => {
 const showPeopleDialog = payload => {
   printw("🤔", payload);
 
-  const owner = extract("owner", payload.original_message);
-  const sender = extract("sender", payload.original_message);
-  const reader = extract("reader", payload.original_message);
-  const reader2 = extract("reader2", payload.original_message);
+  const owner = extract(FIELDS.OWNER, payload.original_message);
+  const desk = extract(FIELDS.DESK, payload.original_message);
+  const reader = extract(FIELDS.READER, payload.original_message);
+  const reader2 = extract(FIELDS.READER2, payload.original_message);
+  const sender = extract(FIELDS.SENDER, payload.original_message);
 
   web.dialog
     .open({
       trigger_id: payload.trigger_id,
       dialog: peopleDialog({
         owner,
-        sender,
+        desk,
         reader,
         reader2,
+        sender,
         message_ts: payload.message_ts
       })
     })
     .catch(error => {
       console.error(error);
-      return axios.post(payload.response_url, {
-        text: `An error occurred while opening the dialog: ${error.message}`
-      });
+      web.chat
+        .postEphemeral({
+          channel: payload.channel.id,
+          user: payload.user.id,
+          text: `Sorry, an error occurred while opening the dialog: ${error.message}`
+        })
+        .catch(console.error);
     })
     .catch(console.error);
 };
@@ -187,12 +199,11 @@ const addApproval = payload => {
         console.error(error);
       });
   } else {
-    console.log(" ALREADY ADDDED DOOOOD");
     // user already added, post an ephemeral message letting them know
     web.chat.postEphemeral({
       channel,
       user,
-      text: "Your excitement is encourage, but you've already added your approval! 😁"
+      text: "Your excitement is encouraging, but you've already added your approval! 😁"
     });
   }
 };
@@ -215,11 +226,13 @@ slackInteractions.action("action_selection", (payload, respond) => {
     } else if (selectedOption === "approve") {
       addApproval(payload);
     } else {
-      web.chat.postEphemeral({
-        channel: payload.channel.id,
-        user: payload.user.id,
-        text: "Sorry, that action is not yet implemented."
-      });
+      web.chat
+        .postEphemeral({
+          channel: payload.channel.id,
+          user: payload.user.id,
+          text: "Sorry, that action is not yet implemented."
+        })
+        .catch(console.error);
     }
   }
 
@@ -247,14 +260,14 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
         printw("🔴", data);
         const msg = data.messages[0];
 
-        const oldSlug = updateField("slug", payload.submission.slug, msg);
-        const oldDesk = updateField("desk", payload.submission.desk, msg);
+        const oldSlug = updateField(FIELDS.SLUG, payload.submission.slug, msg);
+        const oldDesk = updateField(FIELDS.DESK, payload.submission.desk, msg);
         const oldAudience = updateField(
-          "audience",
+          FIELDS.AUDIENCE,
           displayAudience(payload.submission.audience, payload.submission.audience2),
           msg
         );
-        const oldLang = updateField("language", payload.submission.language, msg);
+        const oldLang = updateField(FIELDS.LANGUAGE, payload.submission.language, msg);
 
         printw("🀄️", msg);
 
@@ -278,24 +291,15 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
 
             let updatedText = `<@${payload.user.name}> just updated:\n`;
 
-            updatedText += oldSlug
-              ? `*Slug* from ~${oldSlug}~ to \`${payload.submission.slug}\`\n`
-              : "";
-            updatedText += oldLang
-              ? `*Language* from ~${oldLang}~ to \n>${payload.submission.language}\n`
-              : "";
-            updatedText += oldDesk
-              ? `*Desk Editor* from ~${displayUser(oldDesk)}~ to ${displayUser(
-                  payload.submission.desk
-                )}\n`
-              : "";
-
-            updatedText += oldAudience
-              ? `*Audience* from ~${oldAudience}~ to ${displayAudience(
-                  payload.submission.audience,
-                  payload.submission.audience2
-                )}`
-              : "";
+            updatedText += whatChanged(FIELDS.SLUG, oldSlug, payload.submission.slug);
+            updatedText += whatChanged(FIELDS.LANGUAGE, oldLang, payload.submission.language);
+            updatedText += whatChanged(FIELDS.DESK, oldDesk, payload.submission.desk);
+            updatedText += whatChanged(
+              FIELDS.AUDIENCE,
+              oldAudience,
+              payload.submission.audience,
+              payload.submission.audience2
+            );
 
             web.chat
               .postMessage({
@@ -339,13 +343,14 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
         printw("🔴", data);
         const msg = data.messages[0];
 
-        const oldOwner = updateField("owner", payload.submission.owner, msg);
-        const oldSender = updateField("sender", payload.submission.sender, msg);
+        const oldOwner = updateField(FIELDS.OWNER, payload.submission.owner, msg);
+        const oldDesk = updateField(FIELDS.DESK, payload.submission.desk, msg);
         const oldReaders = updateField(
           "readers",
           displayReaders(payload.submission.reader, payload.submission.reader2),
           msg
         );
+        const oldSender = updateField(FIELDS.SENDER, payload.submission.sender, msg);
 
         // update that message with the payload of this dialog submission
         web.chat
@@ -367,18 +372,15 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
 
             let updatedText = `<@${payload.user.name}> just updated:\n`;
 
-            updatedText += oldOwner
-              ? `*Owner* from ~${oldOwner}~ to ${displayUser(payload.submission.owner)}\n`
-              : "";
-            updatedText += oldSender
-              ? `*Sender* from ~${oldSender}~ to ${displayUser(payload.submission.sender)}\n`
-              : "";
-            updatedText += oldReaders
-              ? `*Readers* from ~${oldReaders}~ to ${displayReaders(
-                  payload.submission.reader,
-                  payload.submission.reader2
-                )}\n`
-              : "";
+            updatedText += whatChanged(FIELDS.OWNER, oldOwner, payload.submission.owner);
+            updatedText += whatChanged(FIELDS.DESK, oldDesk, payload.submission.desk);
+            updatedText += whatChanged(
+              FIELDS.READER,
+              oldReaders,
+              payload.submission.reader,
+              payload.submission.reader2
+            );
+            updatedText += whatChanged(FIELDS.SENDER, oldSender, payload.submission.sender);
 
             web.chat
               .postMessage({
@@ -411,32 +413,10 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
     // end PP_ID
   }
 
-  // const partialMessage = `<@${
-  //   payload.user.id
-  // }> just pitched a new alert for \`${
-  //   payload.submission.slug
-  // }\` with the language:\n> ${payload.submission.language}\n\nDesk: <@${
-  //   payload.submission.desk
-  // }>\nAudience: ${payload.submission.audience}\nFin..`;
-
   printw("1️⃣", payload);
-  // console.log("about to open dialog");
-  // web.dialog
-  //   .open({
-  //     trigger_id: payload.trigger_id,
-  //     dialog: {
-  //       text: "hi"
-  //     }
-  //   })
-  //   .then(data => {
-  //     console.log("chained dialog", data);
-  //   })
-  //   .catch(error => {
-  //     console.log("error chaining dialog", error);
-  //   });
 
   const msg = initialMessage(payload.submission);
-  updateField("owner", payload.user.id, msg);
+  updateField(FIELDS.OWNER, payload.user.id, msg);
   web.chat
     .postMessage({
       channel,
@@ -457,6 +437,7 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
 
 // Slack slash command handler
 function slackSlashCommand(req, res, next) {
+  printw("😨", req.body);
   console.log("slackSlashCommand", req.body.command);
 
   if (req.body.token != SLACK_VERIFICATION_TOKEN) {
@@ -467,33 +448,28 @@ function slackSlashCommand(req, res, next) {
     return next();
   }
 
-  const type = req.body.text.split(" ")[0];
+  const [type] = req.body.text.split(" ");
+
   if (type === "news") {
     res.send();
     const trigger_id = req.body.trigger_id;
+
     web.dialog
       .open({
         trigger_id,
         dialog: pitchDialog()
       })
-      // .then(data => {
-      //   console.log("dialog returned");
-      //   print(data);
-      //   return;
-      //   web.dialog
-      //     .open({ trigger_id, dialog: { text: "hi" } })
-      //     .then(data => {
-      //       console.log("then data from chained");
-      //     })
-      //     .catch(error => {
-      //       console.log("error chaining", error);
-      //     });
-      // })
       .catch(error => {
         console.error(error);
-        return axios.post(req.body.response_url, {
-          text: `An error occurred while opening the dialog: ${error.message}`
-        });
+        web.chat
+          .postEphemeral({
+            channel: req.body.channel_id,
+            user: req.body.user_id,
+            text: `Sorry, an error occurred while opening the dialog: ${
+              error.message
+            }\n\nPlease try again later.`
+          })
+          .catch(console.error);
       })
       .catch(console.error);
   } else {

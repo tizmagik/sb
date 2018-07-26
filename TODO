@@ -7,3 +7,24 @@
 looks good! some copy tweaks:
 Desk partner --> Desk Editor
 Owner --> News Desk Owner
+
+
+x- "Pitch an Alert" -> "Start an Alert Thread"
+x- Remove "you can change this later" to each field, just add at the top
+
+x - People Dialog:
+x  - Owner, Add "Desk" (to top), Reader(2), Sender
+x  - Remove micro-copy
+
+x- Instead of ~(not yet)~ just say new Sender
+x- Look at extra whitespace issue
+
+
+Status:
+ - No Approvals, RED
+ - 1st approval, YELLOW
+ - Sent, GREEN (no buttons)
+
+LATER:
+- For a new pitch, if there is language ask the Desk Editor to approve, if there isn't language ask the Desk Editor to add the language (Eric will provide copy)
+- If anyone (but the readers) add an approval, have the bot "call out" the readers for approval

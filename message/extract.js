@@ -5,7 +5,11 @@
 import { unformatValue } from "./update";
 import { ALERT_PREFIX, NOT_SET } from "../dialog/constants";
 
-const extractSlug = msg => msg.text.split(ALERT_PREFIX)[1].replace(/`/g, "");
+const extractSlug = msg =>
+  msg.text
+    .split(ALERT_PREFIX)[1]
+    .replace(/`/g, "") // this removes the ` from displaying
+    .replace(/\<|\>/g, ""); // this removes the extra "<>" arround URLs
 
 const extractField = (field, msg) => {
   print(msg.attachments[0].fields);
