@@ -3,7 +3,7 @@
  *
  */
 import { unformatValue } from "./update";
-import { ALERT_PREFIX } from "../dialog/constants";
+import { ALERT_PREFIX, NOT_SET } from "../dialog/constants";
 
 const extractSlug = msg => msg.text.split(ALERT_PREFIX)[1].replace(/`/g, "");
 
@@ -37,10 +37,24 @@ const extractField = (field, msg) => {
   return unformatValue(field, value);
 };
 
+const extractApprovals = msg => {
+  const approvals = msg.attachments[0].fields.find(f => f.title.toLowerCase() === "approvals")
+    .value;
+
+  if (approvals === NOT_SET) return [];
+
+  return unformatValue("approvals", approvals).split(", ");
+};
+
 const extract = (field, msg) => {
   if (field === "slug") {
     return extractSlug(msg);
   }
+
+  if (field === "approvals") {
+    return extractApprovals(msg);
+  }
+
   return extractField(field, msg);
 };
 

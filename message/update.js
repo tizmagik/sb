@@ -13,7 +13,7 @@ export const updateSlug = (slugOrUrl, msg) => {
 };
 
 // Which fields should get the username treatment?
-const USERNAME_FIELD_TYPES = ["desk", "owner", "sender", "reader", "reader2"];
+const USERNAME_FIELD_TYPES = ["desk", "owner", "sender", "reader", "reader2", "approvals"];
 
 /**
  * Formats @usernames for fields that should hyperlink users
@@ -47,8 +47,30 @@ export const unformatValue = (field, value) => {
   return value;
 };
 
+const updateApprovals = (value, msg) => {
+  const field = msg.attachments[0].fields.find(f => f.title.toLowerCase() === "approvals");
+  printw("X", field);
+  const approvals = extract("approvals", msg);
+
+  printw("🚨", { value, approvals });
+
+  if (approvals.indexOf(value) === -1) {
+    // not already in list
+    field.value = approvals
+      .concat(value)
+      .map(v => formatValue("approvals", v))
+      .join(", ");
+    return true;
+  }
+
+  // already in approval list, no reason to do anything
+  console.log("already in list!", approvals, field);
+  return false;
+};
+
 export const updateField = (field, value, msg) => {
   if (field === "slug") return updateSlug(value, msg);
+  if (field === "approvals") return updateApprovals(value, msg);
 
   let i = -1;
 

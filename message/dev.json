@@ -12,7 +12,7 @@
           "short": false
         },
         {
-          "title": "Desk partner",
+          "title": "Desk Editor",
           "value": "<http://user|@somedesk>",
           "short": true
         },

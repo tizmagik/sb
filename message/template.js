@@ -14,7 +14,7 @@ export default {
           short: false
         },
         {
-          title: "Desk partner",
+          title: "Desk Editor",
           value: NOT_SET,
           short: true
         },

@@ -40,12 +40,12 @@ const dialog = ({ slug = "faux-slug", language, desk, audience, audience2, messa
         optional: true
       },
       {
-        label: "Desk partner",
+        label: "Desk Editor",
         type: "select",
         name: "desk",
         value: desk === NOT_SET ? undefined : desk,
         data_source: "users",
-        placeholder: "Desk partner",
+        placeholder: "Desk Editor",
         hint: "You can change this later.",
         optional: true
       },

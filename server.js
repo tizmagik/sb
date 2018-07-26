@@ -14,13 +14,11 @@ import { displayAudience, displayReaders, displayUser } from "./formatters";
 
 // Global Helpers for debugging, remove later!
 // TODO: Remove before productionalizing
-const println = s => console.log(` ${s} `.repeat(10));
+const ln = s => ` ${s} `.repeat(10);
 const printw = (e, o) => {
-  console.log("\nSTART");
-  println(e);
+  console.log("\n", e, " START", ln(e));
   print(o);
-  println(e);
-  console.log("END\n");
+  console.log("\n", e, " END", ln(e));
 };
 
 global.print = print;
@@ -142,12 +140,69 @@ const showPeopleDialog = payload => {
     .catch(console.error);
 };
 
+const addApproval = payload => {
+  printw("✅", payload);
+
+  const msg = payload.original_message;
+  const channel = payload.channel.id;
+  const user = payload.user.id;
+  const ts = payload.message_ts;
+
+  // Update original_message with approval from this user
+
+  // Post in thread about added approval
+  const added = updateField("approvals", user, msg);
+
+  console.log(" _____________________ ", added);
+
+  if (added) {
+    web.chat
+      .update({
+        ...msg,
+        channel,
+        ts,
+        token: SLACK_BOT_ACCESS_TOKEN,
+        as_user: true // https://api.slack.com/methods/chat.update
+      })
+      .then(data => {
+        web.chat
+          .postMessage({
+            channel,
+            thread_ts: ts,
+            token: SLACK_BOT_ACCESS_TOKEN,
+            as_user: true, // this would make it show up as the user himself that did the update
+            text: `✅ <@${payload.user.name}> just added their approval!`
+          })
+          .then(data => {
+            console.log("done posting reply");
+            console.log(data);
+          })
+          .catch(error => {
+            console.log("Error posting reply");
+            console.error(error);
+          });
+      })
+      .catch(error => {
+        console.log("Error updating...");
+        console.error(error);
+      });
+  } else {
+    console.log(" ALREADY ADDDED DOOOOD");
+    // user already added, post an ephemeral message letting them know
+    web.chat.postEphemeral({
+      channel,
+      user,
+      text: "Your excitement is encourage, but you've already added your approval! 😁"
+    });
+  }
+};
+
 slackInteractions.action("action_selection", (payload, respond) => {
   console.log(
     `\n\n☢️ The user ${payload.user.name} in team ${payload.team.domain} chose an action`
   );
 
-  printw("☢️", payload);
+  // printw("☢️", payload);
 
   if (payload.type === "interactive_message") {
     const selectedOption = payload.actions[0].value;
@@ -157,6 +212,8 @@ slackInteractions.action("action_selection", (payload, respond) => {
       showPitchDialog(payload);
     } else if (selectedOption === "people") {
       showPeopleDialog(payload);
+    } else if (selectedOption === "approve") {
+      addApproval(payload);
     } else {
       web.chat.postEphemeral({
         channel: payload.channel.id,
@@ -228,7 +285,9 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
               ? `*Language* from ~${oldLang}~ to \n>${payload.submission.language}\n`
               : "";
             updatedText += oldDesk
-              ? `*Desk partner* from <@${oldDesk}> to <@${payload.submission.desk}>\n`
+              ? `*Desk Editor* from ~${displayUser(oldDesk)}~ to ${displayUser(
+                  payload.submission.desk
+                )}\n`
               : "";
 
             updatedText += oldAudience
