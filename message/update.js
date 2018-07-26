@@ -136,6 +136,11 @@ const getStatusText = msg => {
   return READY_TO_SEND;
 };
 
+const updateColors = (color, msg) => {
+  msg.attachments[IDX.ALERT].color = color;
+  msg.attachments[IDX.FIELDS].color = color;
+};
+
 /**
  * This will *mutate* msg to include the "Waiting for approvals from" text
  * as well as update the `color` property of the msg.
@@ -146,9 +151,7 @@ export const updateStatus = msg => {
   msg.attachments[IDX.ACTIONS].text = getStatusText(msg) + "\n\n";
   // We set the color to "APPROVALS" state if we have at least 1 approval
   const color = extract(FIELDS.APPROVALS, msg)[0] === NOT_SET ? STATES.INITIAL : STATES.APPROVED;
-  msg.attachments.forEach(a => {
-    a.color = color;
-  });
+  updateColors(color, msg);
 };
 
 export const updateSent = (byUser, msg) => {
@@ -161,7 +164,5 @@ export const updateSent = (byUser, msg) => {
   // const date = "<!date^1392734382^{date_short}^asdf>";
 
   actions.text = `🏁 Sent by ${formatValue(FIELDS.USER, byUser)}, ${date}`;
-  msg.attachments.forEach(a => {
-    a.color = STATES.SENT;
-  });
+  updateColors(STATES.SENT, msg);
 };

@@ -443,6 +443,7 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
   }
 
   const msg = initialMessage(payload.submission);
+  updateStatus(msg);
   updateField(FIELDS.OWNER, payload.user.id, msg);
   web.chat
     .postMessage({

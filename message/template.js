@@ -58,7 +58,7 @@ export default {
       text: "",
       fallback:
         "Your Slack client does not support interactive messages. Please try a different Slack client.",
-      color: STATES.INITIAL,
+      color: "#fff",
       attachment_type: "default",
       callback_id: "action_selection",
       actions: [
