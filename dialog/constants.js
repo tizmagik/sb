@@ -1,4 +1,4 @@
-import { titleCase, title } from "change-case";
+import { titleCase } from "change-case";
 
 export const IDX = {
   ALERT: 0,

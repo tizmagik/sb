@@ -12,17 +12,26 @@ import { updateField, updateStatus, updateSent } from "./message/update";
 import { displayAudience, displayReaders, whatChanged } from "./formatters";
 import { FIELDS, ACTIONS } from "./dialog/constants";
 
-// Global Helpers for debugging, remove later!
-// TODO: Remove before productionalizing
+// Read the verification token from the environment variables
+const {
+  SLACK_VERIFICATION_TOKEN,
+  SLACK_APP_ACCESS_TOKEN,
+  SLACK_BOT_ACCESS_TOKEN,
+  NODE_ENV
+} = process.env;
+
+if (!SLACK_VERIFICATION_TOKEN || !SLACK_APP_ACCESS_TOKEN || !SLACK_BOT_ACCESS_TOKEN) {
+  throw new Error("Slack tokens are required to run this app.");
+}
+
+// Expose global printers for debugging when not in prod
 const ln = s => ` ${s} `.repeat(10);
 const printw = (e, o) => {
   console.log("\n", e, " START", ln(e));
   print(o);
   console.log("\n", e, " END", ln(e));
 };
-
-global.print = print;
-global.printw = printw;
+global.printw = NODE_ENV === "production" ? () => {} : printw;
 
 process.on("uncaughtException", e => {
   console.error("[uncaught exception]", e);
@@ -34,13 +43,6 @@ process.on("unhandledRejection", e => {
 
 console.log("Server booting up");
 
-// Read the verification token from the environment variables
-const { SLACK_VERIFICATION_TOKEN, SLACK_ACCESS_TOKEN, SLACK_BOT_ACCESS_TOKEN } = process.env;
-
-if (!SLACK_VERIFICATION_TOKEN || !SLACK_ACCESS_TOKEN || !SLACK_BOT_ACCESS_TOKEN) {
-  throw new Error("Slack tokens are required to run this app.");
-}
-
 // TODO: Maybe make use of this slack sdk instead, https://github.com/MissionsAI/slapp
 // TODO: Handle the error case where the bot is not invited to the channel
 
@@ -48,7 +50,7 @@ if (!SLACK_VERIFICATION_TOKEN || !SLACK_ACCESS_TOKEN || !SLACK_BOT_ACCESS_TOKEN)
 const slackInteractions = createMessageAdapter(SLACK_VERIFICATION_TOKEN);
 
 // Create a Slack Web API client
-const web = new WebClient(SLACK_ACCESS_TOKEN);
+const web = new WebClient(SLACK_APP_ACCESS_TOKEN);
 
 // Initialize an Express application
 const app = express();
