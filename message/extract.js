@@ -2,63 +2,48 @@
  * Extraction helpers to help extract values from original_message payloads
  *
  */
-import { unformatValue } from "./update";
-import { ALERT_PREFIX, NOT_SET, IDX } from "../dialog/constants";
+import { unformatValue, getField } from "./update";
+import { ALERT_PREFIX, NOT_SET, IDX, FIELDS } from "../dialog/constants";
 
 const extractSlug = msg =>
-  msg.attachments[IDX.ALERT].text
-    .split(ALERT_PREFIX)[1]
-    .replace(/`/g, "") // this removes the ` from displaying
-    .replace(/\<|\>/g, ""); // this removes the extra "<>" arround URLs
+  unformatValue(FIELDS.SLUG, msg.attachments[IDX.ALERT].text.split(ALERT_PREFIX)[1]);
 
-const extractField = (field, msg) => {
-  const value = msg.attachments[IDX.FIELDS].fields.find(
-    // this indexOf is to paper over "audience2" which we want to resolve to "Audience"
-    // the .replace(/s$/) is so that "reader" can resolve to to "Readers" (same for "Approvals")
-    f =>
-      field.indexOf(
-        f.title
-          .split(" ")[0]
-          .toLowerCase()
-          .replace(/s$/, "")
-      ) > -1
-  ).value;
-
-  // to handle audience
-  if (field.startsWith("audience")) {
-    const [audience, audience2] = value.split(", ");
-    return field === "audience" ? audience : audience2;
-  }
-
-  // to handle reader
-  if (field.startsWith("reader")) {
-    const [reader, reader2] = value.split(", ");
-    return unformatValue(field, field === "reader" ? reader : reader2);
-  }
-
-  return unformatValue(field, value);
-};
-
-const extractApprovals = msg => {
-  const approvals = msg.attachments[IDX.FIELDS].fields.find(
-    f => f.title.toLowerCase() === "approvals"
-  ).value;
-
-  if (approvals === NOT_SET) return [];
-
-  return unformatValue("approvals", approvals).split(", ");
-};
-
+/**
+ * Extracts the individual field values from Slack object
+ *
+ * e.g. [audience, audience2] <= "Audiences"
+ *
+ * @param {FIELD} field
+ * @param {Slack Obj} msg
+ */
 const extract = (field, msg) => {
-  if (field === "slug") {
+  // to handle slug
+  if (field === FIELDS.SLUG) {
     return extractSlug(msg);
   }
 
-  if (field === "approvals") {
-    return extractApprovals(msg);
+  const value = getField(field, msg).value;
+
+  // to handle audience
+  if (field === FIELDS.AUDIENCE || field === FIELDS.AUDIENCE2) {
+    const [audience, audience2] = value.split(", ");
+    return field === FIELDS.AUDIENCE ? audience : audience2;
   }
 
-  return extractField(field, msg);
+  // to handle reader
+  if (field === FIELDS.READER || field === FIELDS.READER2) {
+    const [reader, reader2] = value.split(", ");
+    return unformatValue(field, field === FIELDS.READER ? reader : reader2);
+  }
+
+  // to handle approvals
+  if (field === FIELDS.APPROVALS) {
+    return unformatValue(field, value)
+      .split(", ")
+      .filter(a => a !== NOT_SET);
+  }
+
+  return unformatValue(field, value);
 };
 
 export default extract;

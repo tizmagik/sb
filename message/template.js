@@ -1,4 +1,6 @@
-import { ALERT_PREFIX, NOT_SET, STATES } from "../dialog/constants";
+import { ALERT_PREFIX, NOT_SET, STATES, FIELDS, ACTIONS } from "../dialog/constants";
+
+const { toDisplay } = FIELDS;
 
 export default {
   response_type: "in_channel",
@@ -17,37 +19,37 @@ export default {
       color: STATES.INITIAL,
       fields: [
         {
-          title: "Language",
+          title: toDisplay(FIELDS.LANGUAGE),
           value: NOT_SET,
           short: false
         },
         {
-          title: "Desk Editor",
+          title: toDisplay(FIELDS.DESK),
           value: NOT_SET,
           short: true
         },
         {
-          title: "Audience",
+          title: toDisplay(FIELDS.AUDIENCE, true),
           value: NOT_SET,
           short: true
         },
         {
-          title: "Owner",
+          title: toDisplay(FIELDS.OWNER),
           value: NOT_SET,
           short: true
         },
         {
-          title: "Sender",
+          title: toDisplay(FIELDS.SENDER),
           value: NOT_SET,
           short: true
         },
         {
-          title: "Readers",
+          title: toDisplay(FIELDS.READER, true),
           value: NOT_SET,
           short: true
         },
         {
-          title: "Approvals",
+          title: toDisplay(FIELDS.APPROVALS),
           value: NOT_SET,
           short: true
         }
@@ -63,28 +65,28 @@ export default {
       callback_id: "action_selection",
       actions: [
         {
-          name: "approve",
+          name: ACTIONS.APPROVE,
           text: "✅  Approve",
           type: "button",
-          value: "approve"
+          value: ACTIONS.APPROVE
         },
         {
-          name: "edit",
+          name: ACTIONS.EDIT,
           text: "✏️  Edit Alert…",
           type: "button",
-          value: "edit"
+          value: ACTIONS.EDIT
         },
         {
-          name: "people",
+          name: ACTIONS.PEOPLE,
           text: "👥  Edit People…",
           type: "button",
-          value: "people"
+          value: ACTIONS.PEOPLE
         },
         {
-          name: "sent",
+          name: ACTIONS.SENT,
           text: "🏁  Mark as Sent",
           type: "button",
-          value: "sent",
+          value: ACTIONS.SENT,
           confirm: {
             title: "Mark this as sent?",
             text: "Are you sure you want to mark this alert as sent?",

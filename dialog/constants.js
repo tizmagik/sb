@@ -1,4 +1,4 @@
-import { titleCase } from "change-case";
+import { titleCase, title } from "change-case";
 
 export const IDX = {
   ALERT: 0,
@@ -11,6 +11,13 @@ export const STATES = {
   INITIAL: "danger",
   APPROVED: "warning",
   SENT: "good"
+};
+
+export const ACTIONS = {
+  APPROVE: "approve",
+  EDIT: "edit",
+  PEOPLE: "people",
+  SENT: "sent"
 };
 
 export const ALERT_PREFIX = ":rotating_light: Alert for ";

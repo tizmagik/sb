@@ -23,26 +23,13 @@ export const unformatValue = (field, value) => {
   if (FIELDS.isUserField(field)) {
     return value.replace(/\<\@/g, "").replace(/\>/g, "");
   }
-
-  return value;
-};
-
-const updateApprovals = (value, msg) => {
-  const field = msg.attachments[IDX.FIELDS].fields.find(f => f.title.toLowerCase() === "approvals");
-
-  const approvals = extract("approvals", msg);
-
-  if (approvals.indexOf(value) === -1) {
-    // not already in list
-    field.value = approvals
-      .concat(value)
-      .map(v => formatValue("approvals", v))
-      .join(", ");
-    return true;
+  if (field === FIELDS.SLUG) {
+    return value
+      .replace(/`/g, "") // this removes the ` from displaying
+      .replace(/\<|\>/g, ""); // this removes the extra "<>" around URLs
   }
 
-  // already in approval list, no reason to do anything
-  return false;
+  return value;
 };
 
 /**
@@ -56,8 +43,7 @@ const findField = (field, msg) => {
   let i = -1;
 
   msg.attachments[IDX.FIELDS].fields.forEach((f, idx) => {
-    const title = f.title.split(" ")[0].toLowerCase(); // TODO: will need a "fromDisplay()"
-    if (field === title) {
+    if (f.title === FIELDS.toDisplay(field, true)) {
       i = idx;
     }
   });
@@ -69,29 +55,53 @@ const findField = (field, msg) => {
   return i;
 };
 
+/**
+ * Resolves to the Slack field given a FIELD
+ *
+ * E.g. AUDIENCE2 => AUDIENCE // ("Audiences")
+ * and  READER2 => READER     // ("Readers")
+ *
+ * @param {FIELD} field
+ * @param {Slack msg} msg
+ */
+export const getField = (field, msg) => {
+  let fieldToFind = field;
+  if (field === FIELDS.AUDIENCE2) fieldToFind = FIELDS.AUDIENCE;
+  if (field === FIELDS.READER2) fieldToFind = FIELDS.READER;
+
+  const i = findField(fieldToFind, msg);
+  return msg.attachments[IDX.FIELDS].fields[i];
+};
+
+const updateApprovals = (value, msg) => {
+  const field = getField(FIELDS.APPROVALS, msg);
+
+  if (field.value.indexOf(value) === -1) {
+    // not already in list
+    const formattedValue = formatValue(FIELDS.APPROVALS, value);
+    field.value = field.value === NOT_SET ? formattedValue : `${field.value}, ${formattedValue}`;
+    return true;
+  }
+
+  // already in approval list, no reason to do anything
+  return false;
+};
+
 export const updateField = (field, value, msg) => {
-  if (field === "slug") return updateSlug(value, msg);
-  if (field === "approvals") return updateApprovals(value, msg);
+  if (field === FIELDS.SLUG) return updateSlug(value, msg);
+  if (field === FIELDS.APPROVALS) return updateApprovals(value, msg);
 
-  let i = findField(field, msg);
-  if (i === -1) return;
-
-  const foundField = msg.attachments[IDX.FIELDS].fields[i];
+  const foundField = getField(field, msg);
 
   const old = foundField.value;
   const newValue = formatValue(field, value);
 
-  msg.attachments[IDX.FIELDS].fields[i] = {
-    ...foundField,
-    value: newValue
-  };
+  foundField.value = newValue;
 
   return old !== newValue && old;
 };
 
 const getStatusText = msg => {
-  let statusText = "";
-
   // get the desk, readers and approvals fields
   const desk = extract(FIELDS.DESK, msg);
   const readers = [extract(FIELDS.READER, msg), extract(FIELDS.READER2, msg)].filter(Boolean);
@@ -99,8 +109,6 @@ const getStatusText = msg => {
   const lang = extract(FIELDS.LANGUAGE, msg);
 
   const dispDesk = formatValue(FIELDS.DESK, desk);
-
-  printw("🧠", { desk, readers, approvals, lang });
 
   if (desk === NOT_SET) {
     return `_Waiting on a *${FIELDS.toDisplay(FIELDS.DESK)}* to be assigned._`;
@@ -112,10 +120,7 @@ const getStatusText = msg => {
 
   if (approvals[0] === NOT_SET) {
     // maybe equivalent conditional: if (approvals.indexOf(desk) === -1) {
-    return `_Waiting on ${formatValue(
-      FIELDS.DESK,
-      desk
-    )} to fact-check and ✅ *Approve* the language._`;
+    return `_Waiting on ${dispDesk} to fact-check and ✅ *Approve* the language._`;
   }
 
   if (readers[0] === NOT_SET) {
@@ -156,12 +161,10 @@ export const updateStatus = msg => {
 
 export const updateSent = (byUser, msg) => {
   const actions = msg.attachments[IDX.ACTIONS];
-
   Reflect.deleteProperty(actions, "actions");
 
   const now = new Date();
   const date = `<!date^${Math.floor(now / 1000)}^{date_short_pretty}|${now.toLocaleString()}>`;
-  // const date = "<!date^1392734382^{date_short}^asdf>";
 
   actions.text = `🏁 Sent by ${formatValue(FIELDS.USER, byUser)}, ${date}`;
   updateColors(STATES.SENT, msg);

@@ -10,7 +10,7 @@ import { initialMessage } from "./message/initial";
 import extract from "./message/extract";
 import { updateField, updateStatus, updateSent } from "./message/update";
 import { displayAudience, displayReaders, whatChanged } from "./formatters";
-import { FIELDS } from "./dialog/constants";
+import { FIELDS, ACTIONS } from "./dialog/constants";
 
 // Global Helpers for debugging, remove later!
 // TODO: Remove before productionalizing
@@ -38,7 +38,7 @@ console.log("Server booting up");
 const { SLACK_VERIFICATION_TOKEN, SLACK_ACCESS_TOKEN, SLACK_BOT_ACCESS_TOKEN } = process.env;
 
 if (!SLACK_VERIFICATION_TOKEN || !SLACK_ACCESS_TOKEN || !SLACK_BOT_ACCESS_TOKEN) {
-  throw new Error("Slack verification token and access token are required to run this app.");
+  throw new Error("Slack tokens are required to run this app.");
 }
 
 // TODO: Maybe make use of this slack sdk instead, https://github.com/MissionsAI/slapp
@@ -161,7 +161,7 @@ const addApproval = payload => {
   // Update original_message with approval from this user
 
   // Post in thread about added approval
-  const added = updateField("approvals", user, msg);
+  const added = updateField(FIELDS.APPROVALS, user, msg);
   updateStatus(msg);
 
   if (added) {
@@ -173,7 +173,7 @@ const addApproval = payload => {
         token: SLACK_BOT_ACCESS_TOKEN,
         as_user: true // https://api.slack.com/methods/chat.update
       })
-      .then(data => {
+      .then(() => {
         web.chat
           .postMessage({
             channel,
@@ -182,19 +182,9 @@ const addApproval = payload => {
             as_user: true, // this would make it show up as the user himself that did the update
             text: `✅ <@${payload.user.name}> just added their approval!`
           })
-          .then(data => {
-            console.log("done posting reply");
-            console.log(data);
-          })
-          .catch(error => {
-            console.log("Error posting reply");
-            console.error(error);
-          });
+          .catch(console.error);
       })
-      .catch(error => {
-        console.log("Error updating...");
-        console.error(error);
-      });
+      .catch(console.error);
   } else {
     // user already added, post an ephemeral message letting them know
     web.chat.postEphemeral({
@@ -211,11 +201,7 @@ const markSent = payload => {
   const user = payload.user.id;
   const ts = payload.message_ts;
 
-  console.log("HERE");
-
   updateSent(user, msg);
-
-  print("🏁", msg);
 
   web.chat.update({
     ...msg,
@@ -239,19 +225,17 @@ slackInteractions.action("action_selection", (payload, respond) => {
     `\n\n☢️ The user ${payload.user.name} in team ${payload.team.domain} chose an action`
   );
 
-  // printw("☢️", payload);
-
   if (payload.type === "interactive_message") {
     const selectedOption = payload.actions[0].value;
 
-    if (selectedOption === "edit") {
+    if (selectedOption === ACTIONS.EDIT) {
       // show the edit slug/language dialog
       showPitchDialog(payload);
-    } else if (selectedOption === "people") {
+    } else if (selectedOption === ACTIONS.PEOPLE) {
       showPeopleDialog(payload);
-    } else if (selectedOption === "approve") {
+    } else if (selectedOption === ACTIONS.APPROVE) {
       addApproval(payload);
-    } else if (selectedOption === "sent") {
+    } else if (selectedOption === ACTIONS.SENT) {
       markSent(payload);
     } else {
       web.chat
@@ -373,7 +357,7 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
         const oldOwner = updateField(FIELDS.OWNER, payload.submission.owner, msg);
         const oldDesk = updateField(FIELDS.DESK, payload.submission.desk, msg);
         const oldReaders = updateField(
-          "readers",
+          FIELDS.READER,
           displayReaders(payload.submission.reader, payload.submission.reader2),
           msg
         );
@@ -452,13 +436,7 @@ slackInteractions.action({ type: "dialog_submission" }, (payload, respond) => {
       as_user: true,
       ...msg
     })
-    .then(data => {
-      // print(data);
-    })
-    .catch(error => {
-      console.log("error posting message");
-      console.error(error);
-    });
+    .catch(console.error);
 
   return {}; // respond(payload);
 });
